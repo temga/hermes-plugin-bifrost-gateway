@@ -20,8 +20,24 @@ import os
 from providers import register_provider
 from providers.base import ProviderProfile
 
+from ._keyresolver import resolve_bifrost_key, resolve_bifrost_base_url
+
+# Seed BIFROST_API_KEY / BIFROST_BASE_URL from config.yaml providers section
+# so the core key resolver (which reads env_vars from the profile) finds the
+# key even when the user added Bifrost as a custom provider with a different
+# env-var name (e.g. HERMES_CUSTOM_ROVE_API_KEY).  This runs at import time,
+# before the agent init reads the profile's env_vars.
+if not os.environ.get("BIFROST_API_KEY"):
+    _seeded = resolve_bifrost_key()
+    if _seeded:
+        os.environ["BIFROST_API_KEY"] = _seeded
+if not os.environ.get("BIFROST_BASE_URL"):
+    _seeded_url = resolve_bifrost_base_url()
+    if _seeded_url:
+        os.environ["BIFROST_BASE_URL"] = _seeded_url
+
 # Default gateway URL (local Bifrost instance)
-_DEFAULT_BASE_URL = "https://router.rove-ai.ru/v1"
+_DEFAULT_BASE_URL = os.environ.get("BIFROST_BASE_URL", "https://router.rove-ai.ru/v1")
 
 # Curated fallback model list — the full catalog is dynamic (24+ models
 # across 4 upstream providers). Users can set any model id in config.yaml

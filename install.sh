@@ -86,6 +86,12 @@ for src in "${PLUGINS[@]}"; do
 
     # Copy plugin files
     cp -r "$src_dir" "$dest_dir"
+
+    # Copy shared key resolver into every plugin directory
+    if [[ -f "$SCRIPT_DIR/_keyresolver.py" ]]; then
+        cp "$SCRIPT_DIR/_keyresolver.py" "$dest_dir/_keyresolver.py"
+    fi
+
     info "Installed: $src"
 done
 

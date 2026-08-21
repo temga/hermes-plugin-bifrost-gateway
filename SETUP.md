@@ -90,26 +90,60 @@ Test-Path "$env:USERPROFILE\.hermes\plugins\model-providers\bifrost\plugin.yaml"
 
 Все пять должны существовать.
 
-## Шаг 3. Записать ключ в `.env`
+## Шаг 3. Ключ
 
-Сначала проверь, не записан ли уже ключ под любым именем:
+Плагины находят Bifrost-ключ автоматически в следующем порядке:
+
+1. **`BIFROST_API_KEY`** в `.env` — каноничное имя.
+2. **`providers.<name>.key_env`** в `config.yaml` — если пользователь уже
+   добавил Bifrost как custom provider (через Desktop UI или `hermes config set`),
+   плагины найдут ключ через его `key_env` (например
+   `HERMES_CUSTOM_ROVE_API_KEY`). Условие: `base_url` провайдера содержит
+   `router.rove-ai.ru`.
+3. **Любой `HERMES_CUSTOM_*_API_KEY`** в `.env` со значением `sk-bf-*` —
+   last-resort fallback.
+
+### Проверь, есть ли уже ключ
+
+Сначала проверь каноничное имя:
 
 ```bash
 hermes config get BIFROST_API_KEY
 ```
 
-Если вернулось непустое значение — ключ уже есть, **пропусти этот шаг**.
+Если вернулось непустое значение — **ключ уже есть, пропусти этот шаг**.
 
-Если пусто — пользователь передаёт ключ в чате. Запиши его через
-`hermes config set` (команда сама определит, что `BIFROST_API_KEY`
-оканчивается на `_API_KEY`, и запишет значение в `~/.hermes/.env`, не в
-config.yaml):
+Если пусто — проверь, нет ли уже Bifrost как custom provider в config.yaml:
+
+```bash
+hermes config get providers
+```
+
+Или эквивалент:
+
+```bash
+python3 -c "
+import os, sys
+sys.path.insert(0, os.path.expanduser('~/.hermes/plugins/model-providers/bifrost'))
+from _keyresolver import resolve_bifrost_key
+key = resolve_bifrost_key()
+print('FOUND' if key else 'NOT FOUND', 'via config/custom provider' if key else '')
+"
+```
+
+Если скрипт вернул `FOUND` — **ключ уже доступен плагинам через config**,
+пропусти запись. Дублировать ключ как `BIFROST_API_KEY` не нужно.
+
+### Если ключа нет нигде
+
+Пользователь передаёт ключ в чате. Запиши его:
 
 ```bash
 hermes config set BIFROST_API_KEY <КЛЮЧ_ОТ_ПОЛЬЗОВАТЕЛЯ>
 ```
 
-> Один `BIFROST_API_KEY` покрывает все пять сервисов.
+> Один ключ покрывает все пять сервисов. Не создавай дубликат под другим
+> именем — плагины найдут его автоматически.
 
 ### Проверка
 
@@ -117,8 +151,8 @@ hermes config set BIFROST_API_KEY <КЛЮЧ_ОТ_ПОЛЬЗОВАТЕЛЯ>
 hermes config get BIFROST_API_KEY
 ```
 
-Должно вернуться значение ключа. Если пусто — ключ не записан, повтори
-команду выше.
+Должно вернуться значение ключа — либо это значение, либо ключ уже
+доступен через `providers.<name>.key_env` (проверь скриптом выше).
 
 ## Шаг 4. Включить плагины
 
@@ -420,13 +454,28 @@ for m in data.get('data', []):
 Если модели нет в списке — она недоступна для ключа.
 Обратись к администратору Bifrost.
 
-### `BIFROST_API_KEY not set`
+### `BIFROST_API_KEY not set` / `Bifrost key not found`
+
+Плагины ищут ключ в трёх местах (по порядку):
+
+1. `BIFROST_API_KEY` в `.env`
+2. `providers.<name>.key_env` в `config.yaml` (custom provider с Bifrost URL)
+3. Любой `HERMES_CUSTOM_*_API_KEY` со значением `sk-bf-*`
+
+Проверь все три:
 
 ```bash
+# 1. Каноничное имя
 hermes config get BIFROST_API_KEY
+
+# 2. Custom providers в config
+hermes config get providers
+
+# 3. HERMES_CUSTOM_*_API_KEY в .env
+grep 'HERMES_CUSTOM.*API_KEY' ~/.hermes/.env
 ```
 
-Если пусто — запиши заново:
+Если ключ найден в любом из них — плагины должны работать. Если нет —
 
 ```bash
 hermes config set BIFROST_API_KEY <КЛЮЧ_ОТ_ПОЛЬЗОВАТЕЛЯ>

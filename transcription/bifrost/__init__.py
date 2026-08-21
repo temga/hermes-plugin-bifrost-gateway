@@ -25,6 +25,8 @@ from typing import Any, Dict, List, Optional
 
 from agent.transcription_provider import TranscriptionProvider
 
+from ._keyresolver import resolve_bifrost_key
+
 logger = logging.getLogger(__name__)
 
 _DEFAULT_BASE_URL = "https://router.rove-ai.ru/v1"
@@ -62,8 +64,7 @@ class BifrostSTTProvider(TranscriptionProvider):
         return "Bifrost Gateway (Whisper/GigaAM)"
 
     def is_available(self) -> bool:
-        key = os.environ.get("BIFROST_API_KEY", "")
-        return bool(key)
+        return bool(resolve_bifrost_key())
 
     def list_models(self) -> List[Dict[str, Any]]:
         return list(_MODELS)
@@ -94,12 +95,12 @@ class BifrostSTTProvider(TranscriptionProvider):
         **extra: Any,
     ) -> Dict[str, Any]:
         """Transcribe via ``POST /v1/audio/transcriptions`` on Bifrost."""
-        api_key = os.environ.get("BIFROST_API_KEY", "")
+        api_key = resolve_bifrost_key()
         if not api_key:
             return {
                 "success": False,
                 "transcript": "",
-                "error": "BIFROST_API_KEY not set",
+                "error": "Bifrost key not set",
                 "provider": self.name,
             }
 

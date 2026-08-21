@@ -24,6 +24,8 @@ import requests
 
 from agent.web_search_provider import WebSearchProvider
 
+from ._keyresolver import resolve_bifrost_key
+
 logger = logging.getLogger(__name__)
 
 _DEFAULT_BASE_URL = "https://router.rove-ai.ru"
@@ -162,10 +164,10 @@ class BifrostWebSearchProvider(WebSearchProvider):
         }
 
     def is_available(self) -> bool:
-        return bool(os.environ.get("BIFROST_API_KEY"))
+        return bool(resolve_bifrost_key())
 
     def _get_client(self) -> BifrostMCPClient | None:
-        key = os.environ.get("BIFROST_API_KEY", "")
+        key = resolve_bifrost_key()
         if not key:
             return None
         base = os.environ.get("BIFROST_BASE_URL", _DEFAULT_BASE_URL)
@@ -187,8 +189,8 @@ class BifrostWebSearchProvider(WebSearchProvider):
         """
         client = self._get_client()
         if not client:
-            logger.warning("BIFROST_API_KEY not set — Bifrost search unavailable")
-            return {"success": False, "error": "BIFROST_API_KEY not set"}
+            logger.warning("Bifrost key not set — Bifrost search unavailable")
+            return {"success": False, "error": "Bifrost key not set"}
 
         results: List[Dict[str, Any]] = []
         lang = kwargs.get("lang", "ru")
@@ -242,7 +244,7 @@ class BifrostWebSearchProvider(WebSearchProvider):
         """
         client = self._get_client()
         if not client:
-            return [{"url": u, "error": "BIFROST_API_KEY not set"} for u in urls]
+            return [{"url": u, "error": "Bifrost key not set"} for u in urls]
 
         out: List[Dict[str, Any]] = []
         for url in urls:

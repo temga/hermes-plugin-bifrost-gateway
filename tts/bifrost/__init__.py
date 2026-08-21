@@ -29,6 +29,8 @@ from typing import Any, Dict, List, Optional
 
 from agent.tts_provider import TTSProvider, DEFAULT_OUTPUT_FORMAT
 
+from ._keyresolver import resolve_bifrost_key
+
 logger = logging.getLogger(__name__)
 
 _API_BASE = os.environ.get("BIFROST_BASE_URL", "https://router.rove-ai.ru").rstrip("/").removesuffix("/v1") + "/v1"
@@ -76,8 +78,7 @@ class BifrostTTSProvider(TTSProvider):
         return "Bifrost TTS (ESpeech / Qwen3) via Bifrost gateway"
 
     def is_available(self) -> bool:
-        key = os.environ.get("BIFROST_API_KEY", "")
-        return bool(key)
+        return bool(resolve_bifrost_key())
 
     def list_models(self) -> List[Dict[str, Any]]:
         return list(_MODELS)
@@ -121,9 +122,9 @@ class BifrostTTSProvider(TTSProvider):
         **extra: Any,
     ) -> str:
         """Synthesize via Bifrost → tts-proxy → NeuralDeep API."""
-        api_key = os.environ.get("BIFROST_API_KEY", "")
+        api_key = resolve_bifrost_key()
         if not api_key:
-            raise RuntimeError("BIFROST_API_KEY not set")
+            raise RuntimeError("Bifrost key not set")
 
         model_name = model or _DEFAULT_MODEL
         voice_name = voice or _DEFAULT_VOICE

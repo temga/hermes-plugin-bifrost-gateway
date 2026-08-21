@@ -39,6 +39,8 @@ from agent.image_gen_provider import (
     success_response,
 )
 
+from ._keyresolver import resolve_bifrost_key
+
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -106,7 +108,7 @@ class BifrostImageGenProvider(ImageGenProvider):
         return "Bifrost Gateway"
 
     def is_available(self) -> bool:
-        return bool(os.environ.get("BIFROST_API_KEY"))
+        return bool(resolve_bifrost_key())
 
     def list_models(self) -> list[dict]:
         return [
@@ -162,10 +164,10 @@ class BifrostImageGenProvider(ImageGenProvider):
         **kwargs,
     ) -> dict:
         """Generate an image via Bifrost gateway."""
-        api_key = os.environ.get("BIFROST_API_KEY", "")
+        api_key = resolve_bifrost_key()
         if not api_key:
             return error_response(
-                error="BIFROST_API_KEY not set",
+                error="Bifrost key not found (set BIFROST_API_KEY or add a Bifrost custom provider)",
                 error_type="auth_required",
                 provider=self.name,
                 model=model or DEFAULT_MODEL,
