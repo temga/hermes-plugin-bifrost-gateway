@@ -22,7 +22,7 @@ Config keys::
 Env vars::
 
     BIFROST_API_KEY=sk-bf-...            # required
-    BIFROST_BASE_URL=http://127.0.0.1:8082  # optional gateway URL override
+    BIFROST_BASE_URL=https://router.rove-ai.ru  # optional gateway URL override
 """
 
 from __future__ import annotations

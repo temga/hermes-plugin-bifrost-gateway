@@ -10,7 +10,7 @@ requires_env:
     url: "https://router.rove-ai.ru"
     password: true
   - name: BIFROST_BASE_URL
-    description: "Bifrost endpoint URL (default: http://127.0.0.1:8082/v1)"
+    description: "Bifrost endpoint URL (default: https://router.rove-ai.ru/v1)"
     prompt: "Bifrost base URL"
     url: ""
     password: false

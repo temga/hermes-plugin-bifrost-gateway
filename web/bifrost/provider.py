@@ -26,14 +26,19 @@ from agent.web_search_provider import WebSearchProvider
 
 logger = logging.getLogger(__name__)
 
-_DEFAULT_BASE_URL = "http://127.0.0.1:8082"
+_DEFAULT_BASE_URL = "https://router.rove-ai.ru"
 
 # MCP protocol version we speak
 _MCP_PROTOCOL = "2024-11-05"
 
 
 class BifrostMCPClient:
-    """Minimal MCP Streamable HTTP client for Bifrost gateway."""
+    """Minimal MCP Streamable HTTP client for Bifrost gateway.
+
+    Bifrost prefixes tool names with the MCP client name (e.g.
+    ``neuraldeep_search-web_search``). This client auto-discovers the
+    prefix via tools/list and resolves short names to full names.
+    """
 
     def __init__(self, base_url: str, api_key: str, timeout: int = 30):
         self._base = base_url.rstrip("/")
@@ -46,6 +51,7 @@ class BifrostMCPClient:
             "Accept": "application/json, text/event-stream",
         }
         self._initialized = False
+        self._tool_map: dict[str, str] = {}  # short name → full name
 
     def _post(self, payload: dict) -> dict:
         resp = requests.post(
@@ -73,13 +79,44 @@ class BifrostMCPClient:
         # Step 2: notifications/initialized
         self._post({"jsonrpc": "2.0", "method": "notifications/initialized", "params": {}})
         self._initialized = True
+        # Step 3: tools/list — build short→full name map
+        self._discover_tools()
+
+    def _discover_tools(self) -> None:
+        """Fetch tools/list and build a short-name → full-name map.
+
+        Bifrost prefixes tools as ``<client_name>-<tool_name>``.
+        We map both the short name (``web_search``) and the full name
+        (``neuraldeep_search-web_search``) to the full name.
+        """
+        resp = self._post({
+            "jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {},
+        })
+        tools = resp.get("result", {}).get("tools", [])
+        for t in tools:
+            full = t.get("name", "")
+            if not full:
+                continue
+            self._tool_map[full] = full
+            # Also map the short name (after last `-`, but only if it
+            # doesn't collide with another tool's full name)
+            if "-" in full:
+                short = full.rsplit("-", 1)[-1]
+                self._tool_map.setdefault(short, full)
+        logger.debug("MCP tools discovered: %s", list(self._tool_map.values()))
 
     def call_tool(self, name: str, arguments: dict, request_id: int = 100) -> dict:
-        """Call an MCP tool by name. Returns the raw JSON-RPC response."""
+        """Call an MCP tool by short or full name.
+
+        Bifrost prefixes tool names (e.g. ``neuraldeep_search-web_search``).
+        Pass either the short name (``web_search``) or the full name —
+        the client resolves it automatically.
+        """
         self._ensure_initialized()
+        resolved = self._tool_map.get(name, name)
         return self._post({
             "jsonrpc": "2.0", "id": request_id, "method": "tools/call",
-            "params": {"name": name, "arguments": arguments},
+            "params": {"name": resolved, "arguments": arguments},
         })
 
 
@@ -110,6 +147,20 @@ class BifrostWebSearchProvider(WebSearchProvider):
     def display_name(self) -> str:
         return "Bifrost Gateway (MCP)"
 
+    def get_setup_schema(self) -> dict:
+        return {
+            "name": "Bifrost Gateway (MCP)",
+            "badge": "paid",
+            "tag": "web_search, tg_search, crawl via NeuralDeep — through Bifrost MCP",
+            "env_vars": [
+                {
+                    "key": "BIFROST_API_KEY",
+                    "prompt": "Bifrost virtual key (sk-bf-*)",
+                    "url": "https://router.rove-ai.ru",
+                },
+            ],
+        }
+
     def is_available(self) -> bool:
         return bool(os.environ.get("BIFROST_API_KEY"))
 
@@ -123,15 +174,21 @@ class BifrostWebSearchProvider(WebSearchProvider):
             base = base[:-3]
         return BifrostMCPClient(base, key)
 
-    def search(self, query: str, num_results: int = 5, **kwargs) -> List[Dict[str, Any]]:
+    def supports_search(self) -> bool:
+        return True
+
+    def supports_extract(self) -> bool:
+        return True
+
+    def search(self, query: str, limit: int = 5, **kwargs) -> Dict[str, Any]:
         """Search the web via Bifrost MCP (web_search + tg_search tools).
 
-        Returns a list of dicts with keys: title, url, description.
+        Returns {"success": True, "data": {"web": [{title, url, description, position}, ...]}}.
         """
         client = self._get_client()
         if not client:
             logger.warning("BIFROST_API_KEY not set — Bifrost search unavailable")
-            return []
+            return {"success": False, "error": "BIFROST_API_KEY not set"}
 
         results: List[Dict[str, Any]] = []
         lang = kwargs.get("lang", "ru")
@@ -139,7 +196,7 @@ class BifrostWebSearchProvider(WebSearchProvider):
         # Web search
         try:
             resp = client.call_tool("web_search", {
-                "query": query, "limit": num_results, "lang": lang,
+                "query": query, "limit": limit, "lang": lang,
             })
             if resp.get("error"):
                 logger.error("MCP web_search error: %s", resp["error"])
@@ -152,7 +209,7 @@ class BifrostWebSearchProvider(WebSearchProvider):
         # Telegram search (bonus — merges TG channels into results)
         try:
             resp2 = client.call_tool("tg_search", {
-                "query": query, "limit": min(num_results, 5),
+                "query": query, "limit": min(limit, 5),
             })
             if not resp2.get("error"):
                 text2 = _extract_text_from_mcp_result(resp2)
@@ -169,33 +226,41 @@ class BifrostWebSearchProvider(WebSearchProvider):
                 seen.add(url)
                 unique.append(r)
 
-        return unique[:num_results]
+        # Add position field
+        for i, r in enumerate(unique):
+            r["position"] = i + 1
 
-    def extract(self, urls: List[str], char_limit: int = 15000, **kwargs) -> Dict[str, Dict[str, Any]]:
+        return {
+            "success": True,
+            "data": {"web": unique[:limit]},
+        }
+
+    def extract(self, urls: List[str], char_limit: int = 15000, **kwargs) -> List[Dict[str, Any]]:
         """Extract/crawl content from URLs via Bifrost MCP (crawl tool).
 
-        Returns {url: {"title": ..., "content": ..., "error": ...}}.
+        Returns [{url, title, content, error?}, ...].
         """
         client = self._get_client()
         if not client:
-            return {u: {"error": "BIFROST_API_KEY not set"} for u in urls}
+            return [{"url": u, "error": "BIFROST_API_KEY not set"} for u in urls]
 
-        out: Dict[str, Dict[str, Any]] = {}
+        out: List[Dict[str, Any]] = []
         for url in urls:
             try:
                 resp = client.call_tool("crawl", {
                     "url": url, "limit": char_limit,
                 })
                 if resp.get("error"):
-                    out[url] = {"error": str(resp["error"].get("message", "unknown"))}
+                    out.append({"url": url, "error": str(resp["error"].get("message", "unknown"))})
                 else:
                     text = _extract_text_from_mcp_result(resp)
-                    out[url] = {
+                    out.append({
+                        "url": url,
                         "title": _extract_title(text, url),
                         "content": text[:char_limit],
-                    }
+                    })
             except Exception as e:
-                out[url] = {"error": str(e)}
+                out.append({"url": url, "error": str(e)})
 
         return out
 
@@ -236,34 +301,35 @@ def _parse_search_results(text: str) -> List[Dict[str, Any]]:
     except (json.JSONDecodeError, TypeError):
         pass
 
-    # Fallback: parse line-by-line for "Title: ... URL: ..." format
+    # Fallback: parse NeuralDeep's formatted text output
+    # Format:
+    #   [1] Title text here
+    #       URL: https://...
+    #       description snippet...
     current = {}
     for line in text.split("\n"):
-        line = line.strip()
-        if not line:
+        stripped = line.strip()
+        if not stripped:
+            if current.get("url"):
+                results.append(current)
+                current = {}
             continue
-        # Match patterns like "1. Title — url" or "Title: ... | URL: ..."
-        url_match = re.search(r'https?://\S+', line)
-        if url_match and current.get("url") is None:
-            current["url"] = url_match.group(0).rstrip(")")
-            # Everything before the URL is the title
-            title_part = line[:url_match.start()].strip(" -—|.")
-            if title_part:
-                current["title"] = title_part.lstrip("0123456789. ")
-        elif line.startswith(("Title:", "title:")):
-            current["title"] = line.split(":", 1)[1].strip()
-        elif line.startswith(("URL:", "url:", "Link:", "link:")):
-            current["url"] = line.split(":", 1)[1].strip()
-        elif line.startswith(("Snippet:", "Description:", "snippet:", "description:")):
-            current["description"] = line.split(":", 1)[1].strip()
-        elif current.get("url") and not current.get("description"):
-            # Accumulate as description
-            current.setdefault("description", "")
-            current["description"] += " " + line if current["description"] else line
 
-        if current.get("url") and current.get("title"):
-            results.append(current)
-            current = {}
+        # [N] Title line
+        m = re.match(r'^\[(\d+)\]\s*(.+)', stripped)
+        if m:
+            if current.get("url"):
+                results.append(current)
+            current = {"title": m.group(2).strip(), "url": "", "description": ""}
+        elif stripped.startswith("URL:"):
+            current["url"] = stripped[4:].strip()
+        elif current.get("url") and not current.get("description"):
+            current["description"] = stripped
+        elif current.get("url") and current.get("description"):
+            current["description"] += " " + stripped
+
+    if current.get("url"):
+        results.append(current)
 
     return results
 

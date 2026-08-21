@@ -10,12 +10,12 @@ Configuration (config.yaml)::
       provider: bifrost
       model: openai/gpt-image-1          # default model
       bifrost:
-        base_url: http://127.0.0.1:8082  # optional override (without /v1)
+        base_url: https://router.rove-ai.ru  # optional override (without /v1)
 
 Environment variables::
 
     BIFROST_API_KEY=sk-bf-...            # required
-    BIFROST_BASE_URL=http://127.0.0.1:8082/v1  # optional, for non-default gateway
+    BIFROST_BASE_URL=https://router.rove-ai.ru/v1  # optional, for non-default gateway
 
 Output: base64-encoded images saved to ``$HERMES_HOME/cache/images/``.
 """
@@ -47,7 +47,7 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_MODEL = "routerai/openai/gpt-image-1"
 
-_DEFAULT_BASE_URL = "http://127.0.0.1:8082"
+_DEFAULT_BASE_URL = "https://router.rove-ai.ru"
 
 # Aspect ratio → OpenAI image API size mapping.
 # Bifrost passes these through to the upstream provider (routerai).
@@ -123,8 +123,8 @@ class BifrostImageGenProvider(ImageGenProvider):
             "name": "Bifrost Gateway",
             "badge": "free",
             "env_vars": [
-                {"name": "BIFROST_API_KEY", "label": "Bifrost virtual key (sk-bf-*)",
-                 "url": "https://router.rove-ai.ru", "password": True},
+                {"key": "BIFROST_API_KEY", "prompt": "Bifrost virtual key (sk-bf-*)",
+                 "url": "https://router.rove-ai.ru", "secret": True},
             ],
         }
 
