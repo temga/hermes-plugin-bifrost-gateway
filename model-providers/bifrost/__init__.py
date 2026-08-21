@@ -69,7 +69,7 @@ bifrost = ProviderProfile(
 def _bifrost_default_vision_model() -> str | None:
     """Return a vision-capable model for the Bifrost gateway.
 
-    The main chat model (e.g. neuraldeep/gpt-oss-120b) is text-only —
+    The main chat model (e.g. turbocloud/GLM-5.2) is text-only —
     sending image input to it produces a cryptic upstream error. This
     override routes vision auto-detect to a known multimodal model so
     ``auxiliary.vision.provider: auto`` works out of the box.

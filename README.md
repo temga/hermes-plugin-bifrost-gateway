@@ -93,7 +93,7 @@ plugins:
 ```yaml
 model:
   provider: bifrost
-  default: neuraldeep/gpt-oss-120b
+  default: turbocloud/GLM-5.2
 
 image_gen:
   provider: bifrost

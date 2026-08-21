@@ -157,7 +157,7 @@ hermes config get plugins.enabled
 
 ```bash
 hermes config set model.provider bifrost
-hermes config set model.default neuraldeep/gpt-oss-120b
+hermes config set model.default turbocloud/GLM-5.2
 
 hermes config set web.search_backend bifrost
 hermes config set web.extract_backend bifrost
@@ -174,7 +174,7 @@ hermes config set tts.bifrost.language Russian
 
 ### Vision-модель (важно!)
 
-Основная chat-модель (по умолчанию `neuraldeep/gpt-oss-120b`) — text-only.
+Основная chat-модель (по умолчанию `turbocloud/GLM-5.2`) — text-only.
 Если её не переопределить, vision auto-detect возьмёт её для анализа
 изображений и получит ошибку от upstream. Нужно явно указать
 vision-модель:
@@ -225,10 +225,8 @@ hermes config set image_gen.model routerai/openai/gpt-image-1
 
 | Модель | Описание |
 |--------|----------|
-| `neuraldeep/gpt-oss-120b` | GPT-OSS 120B (по умолчанию) |
-| `neuraldeep/qwen3.8-27b` | Qwen3.8 27B (vision) |
-| `neuraldeep/kimi-k2.6` | Kimi K2.6 |
-| `turbocloud/GLM-5.2` | GLM-5.2 |
+| `turbocloud/GLM-5.2` | GLM-5.2 (по умолчанию) |
+| `neuraldeep/gpt-oss-120b` | GPT-OSS 120B |
 | `tropass/GLM-5.2` | GLM-5.2 (tropass) |
 
 **STT:**
@@ -404,7 +402,7 @@ cd $env:USERPROFILE\hermes-plugin-bifrost-gateway
 ### Модель не найдена / 403
 
 Имя модели должно быть в формате `provider/model` (например
-`neuraldeep/gpt-oss-120b`). Проверь, какие модели доступны в ключе:
+`turbocloud/GLM-5.2`). Проверь, какие модели доступны в ключе:
 
 ```bash
 hermes config get BIFROST_API_KEY >/dev/null 2>&1 && \
