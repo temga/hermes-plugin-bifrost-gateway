@@ -199,6 +199,7 @@ hermes config set web.extract_backend bifrost
 hermes config set stt.enabled true
 hermes config set stt.provider bifrost
 hermes config set stt.bifrost.model neuraldeep/whisper-podlodka-turbo
+hermes config set stt.bifrost.language ru
 
 hermes config set tts.provider bifrost
 hermes config set tts.bifrost.model espeech-tts
@@ -270,6 +271,10 @@ hermes config set image_gen.model routerai/openai/gpt-image-1
 | `neuraldeep/whisper-podlodka-turbo` | RU/EN (по умолчанию) |
 | `neuraldeep/whisper-1` | мультиязык |
 | `neuraldeep/gigaam-v3` | только RU |
+
+> `stt.bifrost.language: ru` критичен для русской речи. Без него Hermes
+> использует глобальный дефолт `stt.language: en`, и Whisper будет
+> транскрибировать с английским хинтом — русская речь распознаётся хуже.
 
 **TTS:**
 
