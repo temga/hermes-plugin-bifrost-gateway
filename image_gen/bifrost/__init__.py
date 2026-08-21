@@ -8,7 +8,7 @@ Configuration (config.yaml)::
 
     image_gen:
       provider: bifrost
-      model: openai/gpt-image-1          # default model
+      model: openai/gpt-image-2          # default model
       bifrost:
         base_url: https://router.rove-ai.ru  # optional override (without /v1)
 
@@ -47,7 +47,7 @@ logger = logging.getLogger(__name__)
 # Configuration
 # ---------------------------------------------------------------------------
 
-DEFAULT_MODEL = "routerai/openai/gpt-image-1"
+DEFAULT_MODEL = "routerai/openai/gpt-image-2"
 
 _DEFAULT_BASE_URL = "https://router.rove-ai.ru"
 
@@ -63,17 +63,17 @@ _ASPECT_TO_SIZE = {
 # for image models. The gateway proxies to routerai which offers 38+ models.
 # Users can set any model id in config.yaml as long as it has the routerai/ prefix.
 _MODELS: Dict[str, Dict[str, Any]] = {
-    "routerai/openai/gpt-image-1": {
-        "display": "GPT Image 1",
+    "routerai/openai/gpt-image-2": {
+        "display": "GPT Image 2",
         "speed": "~15s",
         "strengths": "High quality, strong prompt adherence, text-in-image",
         "price": "~1 ₽/img",
     },
-    "routerai/openai/gpt-image-1-mini": {
-        "display": "GPT Image 1 Mini",
-        "speed": "~8s",
-        "strengths": "Fast & cheap, good for iteration",
-        "price": "~0.3 ₽/img",
+    "routerai/openai/gpt-image-1": {
+        "display": "GPT Image 1 (legacy)",
+        "speed": "~15s",
+        "strengths": "Previous generation, may be deprecated",
+        "price": "~1 ₽/img",
     },
     "routerai/black-forest-labs/flux.2-klein": {
         "display": "Flux 2 Klein",

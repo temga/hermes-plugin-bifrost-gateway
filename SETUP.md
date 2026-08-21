@@ -256,7 +256,7 @@ print('Image models:', image if image else 'NONE')
 
 ```bash
 hermes config set image_gen.provider bifrost
-hermes config set image_gen.model routerai/openai/gpt-image-1
+hermes config set image_gen.model routerai/openai/gpt-image-2
 ```
 
 Если image-моделей нет — **пропусти image gen**. Это означает, что

@@ -92,9 +92,9 @@ cd ~/workspace/hermes-plugin-bifrost-gateway && git pull && ./install.sh
 
 ## 2026-08-21 — v1.2.0
 
-### Unified key resolver + STT language fix
+### Unified key resolver + STT language fix + image gen model
 
-Два изменения:
+Три изменения:
 
 1. **Key resolver.** Плагины теперь находят Bifrost-ключ автоматически —
    через `BIFROST_API_KEY`, через `providers.*.key_env` в config.yaml,
@@ -105,10 +105,13 @@ cd ~/workspace/hermes-plugin-bifrost-gateway && git pull && ./install.sh
    английский хинт (`stt.language: "en"` из дефолтов) и плохо
    распознаёт русскую речь.
 
+3. **Image gen model.** `routerai/openai/gpt-image-1` заменён на
+   `routerai/openai/gpt-image-2` (gpt-image-1 deprecated).
+
 **Действие:**
 
 ```bash
-# 1. Обновить плагины (получат _keyresolver.py)
+# 1. Обновить плагины (получат _keyresolver.py + новую модель)
 cd ~/hermes-plugin-bifrost-gateway
 git pull
 ./install.sh
@@ -116,12 +119,13 @@ git pull
 # 2. Фикс STT языка
 hermes config set stt.bifrost.language ru
 
-# 3. (Опционально) Убрать дубликат ключа, если он есть
-#    Проверь — если BIFROST_API_KEY и HERMES_CUSTOM_*_API_KEY содержат
-#    один и тот же sk-bf-* ключ, BIFROST_API_KEY можно удалить:
+# 3. Новая модель image gen
+hermes config set image_gen.model routerai/openai/gpt-image-2
+
+# 4. (Опционально) Убрать дубликат ключа, если он есть
 hermes config unset BIFROST_API_KEY
 
-# 4. Перезапустить Hermes
+# 5. Перезапустить Hermes
 ```
 
 ---
