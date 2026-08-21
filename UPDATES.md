@@ -90,6 +90,42 @@ cd ~/workspace/hermes-plugin-bifrost-gateway && git pull && ./install.sh
 
 ---
 
+## 2026-08-21 — v1.2.0
+
+### Unified key resolver + STT language fix
+
+Два изменения:
+
+1. **Key resolver.** Плагины теперь находят Bifrost-ключ автоматически —
+   через `BIFROST_API_KEY`, через `providers.*.key_env` в config.yaml,
+   или через любой `HERMES_CUSTOM_*_API_KEY` со значением `sk-bf-*`.
+   Дублировать ключ больше не нужно.
+
+2. **STT language.** Без `stt.bifrost.language: ru` Whisper получает
+   английский хинт (`stt.language: "en"` из дефолтов) и плохо
+   распознаёт русскую речь.
+
+**Действие:**
+
+```bash
+# 1. Обновить плагины (получат _keyresolver.py)
+cd ~/hermes-plugin-bifrost-gateway
+git pull
+./install.sh
+
+# 2. Фикс STT языка
+hermes config set stt.bifrost.language ru
+
+# 3. (Опционально) Убрать дубликат ключа, если он есть
+#    Проверь — если BIFROST_API_KEY и HERMES_CUSTOM_*_API_KEY содержат
+#    один и тот же sk-bf-* ключ, BIFROST_API_KEY можно удалить:
+hermes config unset BIFROST_API_KEY
+
+# 4. Перезапустить Hermes
+```
+
+---
+
 <!-- Новые записи добавляй ниже в формате:
 ## YYYY-MM-DD — vX.Y.Z
 

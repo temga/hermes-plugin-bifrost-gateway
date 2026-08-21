@@ -11,6 +11,14 @@
 - Hermes Agent установлен и работает (`hermes --version`).
 - Есть ключ Bifrost `sk-bf-...` (пользователь передаёт его в чате).
 
+> **Уже установлено ранее?** Если плагины уже стоят — обнови:
+> ```bash
+> cd ~/hermes-plugin-bifrost-gateway && git pull && ./install.sh
+> hermes config set stt.bifrost.language ru
+> ```
+> Затем перезапусти Hermes. Подробности — в `UPDATES.md`, запись v1.2.0.
+> Проверить, установлены ли плагины: `ls ~/.hermes/plugins/*/bifrost/plugin.yaml`
+
 ---
 
 ## Шаг 1. Клонировать репозиторий
